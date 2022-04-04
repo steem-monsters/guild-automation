@@ -1,0 +1,13 @@
+{
+  "prefix": "matt-sm_",
+  "game_api_url": "https://api2.splinterlands.com",
+
+  "receiving_account": "guild_account",
+  "tokens": ["DEC", "SPS"],
+  "card_editions": [3],
+
+  "accounts": [
+    { "name": "account_1", "key": "" },
+    { "name": "account_2", "key": "" }
+  ]
+}
