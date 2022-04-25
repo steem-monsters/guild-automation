@@ -1,3 +1,4 @@
+const fs = require('fs');
 const config = require('./config.json');
 const utils = require('./utils');
 const fetch = require('node-fetch');
@@ -8,15 +9,21 @@ start()
 async function start() {
 	bridge.init(config);
 
+	const fileName = getFileName();
 	for (let i = 0; i < config.accounts.length; i++) {
-		await transferAssets(config.accounts[i]);
+		await transferAssets(config.accounts[i], fileName);
+	}
+
+	if (config.run_interval_minutes) {
+		setTimeout(start, config.run_interval_minutes * 60 * 1000);
 	}
 }
 
-async function transferAssets(account) {
+async function transferAssets(account, fileName) {
 	utils.log(`Transferring assets from [@${account.name}] to [@${config.receiving_account}]...`);
 
 	try {
+		let csv = `${account.name}`;
 		const result = await fetch(`${config.game_api_url}/players/balances?username=${account.name}`);
 		let balances = await result.json();
 
@@ -28,11 +35,15 @@ async function transferAssets(account) {
 		} else {
 			for (let i = 0; i < config.tokens.length; i++) {
 				const token = config.tokens[i];
+				csv += `,${token}`;
 				const balance = balances.find(b => b.token === token);
 
 				if (balance) {
 					utils.log(`Transferring [${balance.balance} ${token}]...`);
-					await bridge.sendToken(config.receiving_account, token, balance.balance, account.name, account.key);
+					const token_tx = await bridge.sendToken(config.receiving_account, token, balance.balance, account.name, account.key);
+					csv += `,${balance.balance},${token_tx.id}`;
+				} else {
+					csv += `,0,`;
 				}
 			}
 		}
@@ -46,13 +57,22 @@ async function transferAssets(account) {
 		} else {
 			utils.log(`Transferring ${cards_to_send.length} cards...`);
 
-			await bridge.customJson(`${config.prefix}gift_cards`, {
+			const card_tx = await bridge.customJson(`${config.prefix}gift_cards`, {
 				to: config.receiving_account,
 				cards: cards_to_send.map(c => c.uid),
 			}, account.name, account.key, true);
+
+			csv += `,"${cards_to_send.map(c => c.uid).join(',')}",${card_tx.id}`;
 		}
+
+		fs.appendFile(`${config.output_file_path}/${fileName}`, `${csv}\r\n`, err => err ? utils.log(`Error writing to file: ${err}`) : null);
 	} catch (err) {
 		utils.log(`Error transferring assets for [@${account.name}]. Error: ${err && err.message ? err.message : err}`, 1, 'Red');
 		console.log(err.stack);
 	}
+}
+
+function getFileName() {
+	let dateStr = new Date().toISOString();
+	return `guild_transfers_${dateStr.substr(0, dateStr.indexOf('.')).replace(/:/g,'.')}.csv`;
 }

@@ -1,6 +1,9 @@
 {
+  "logging_level": 3,
   "prefix": "sm_",
   "game_api_url": "https://api2.splinterlands.com",
+  "run_interval_minutes": 60,
+  "output_file_path": "./",
 
   "receiving_account": "guild_account",
   "tokens": ["DEC", "SPS"],
