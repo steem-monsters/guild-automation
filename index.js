@@ -65,7 +65,9 @@ async function transferAssets(account, fileName) {
 			csv += `,"${cards_to_send.map(c => c.uid).join(',')}",${card_tx.id}`;
 		}
 
-		fs.appendFile(`${config.output_file_path}/${fileName}`, `${csv}\r\n`, err => err ? utils.log(`Error writing to file: ${err}`) : null);
+		if (config.output_file_path) {
+			fs.appendFile(`${config.output_file_path}/${fileName}`, `${csv}\r\n`, err => err ? utils.log(`Error writing to file: ${err}`) : null);
+		}
 	} catch (err) {
 		utils.log(`Error transferring assets for [@${account.name}]. Error: ${err && err.message ? err.message : err}`, 1, 'Red');
 		console.log(err.stack);
